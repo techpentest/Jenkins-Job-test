@@ -1,0 +1,62 @@
+pipeline {
+    agent any
+    
+    tools {
+        maven 'maven3.9'
+        jdk 'jdk17'
+    }
+
+    stages {
+        stage('Git Repo Check') {
+            steps{
+                git branch: 'main', url: 'https://github.com/techpentest/Boardgame.git'
+            }    
+        }
+        
+        //GitLeaks Checkout
+        stage('GitLeaks Checkout') {
+            steps{
+                sh 'gitleaks detect source . -r report.json || true'
+            }    
+        }
+        
+        stage('Compile') {
+            steps {
+             sh 'mvn compile'
+            }
+        }
+        
+        stage('test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        
+        //Phase 1
+        stage('# Phase 1 Trivy Scan') {
+            steps {
+                sh 'trivy fs -f json -o result.json .'
+            }
+        }
+        
+        //Phase 2
+        stage('# Phase 2 OWASP Dependency Check') {
+                steps {
+                    dependencyCheck additionalArguments: ' --scan ./ ', odcInstallation: 'DC'
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                }
+        }
+        
+        stage('Package') {
+            steps {
+               sh 'mvn package'
+            }
+        }
+       
+       stage('Clean Workspace') {
+           steps {
+             cleanWs()
+           }
+        }
+    }
+}

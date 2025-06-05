@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Git Repo Check') {
             steps{
-                git branch: 'main', url: 'https://github.com/techpentest/Boardgame.git'
+                git branch: 'main', url: 'https://github.com/techpentest/Boardgame.git' //https://github.com/Plazmaz/leaky-repo.git
             }    
         }
         

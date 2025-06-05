@@ -1,0 +1,62 @@
+pipeline {
+    agent any
+    
+    tools {
+        maven 'maven3.9'
+        jdk 'jdk17'
+    }
+    
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
+    
+    stages {
+        stage('Git Repo Checkout') {
+            steps {
+               git branch: 'main', url: 'https://github.com/techpentest/Boardgame.git'
+            }
+        }
+        
+         stage('Compile') {
+            steps {
+                sh 'mvn compile'
+            }
+        }
+        
+         stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        
+         stage('Validation') {
+            steps {
+                sh 'mvn validate'
+            }
+        }
+        
+        stage('package') {
+            steps {
+                sh 'mvn package'
+            }
+        }
+		
+		stage('SonarQube Analysis') {
+	        steps {
+                withSonarQubeEnv('sonarqube') {
+                       sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=BoardGame \
+                              -Dsonar.projectKey=BoardGame -Dsonar.java.binaries=target '''
+                         }
+                   }
+        }
+        
+        stage('Quality Gateway Check') {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: false,
+                    credentialsId: 'sonar-token'
+                }
+            }
+        }
+    }
+}
